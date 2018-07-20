@@ -3,6 +3,8 @@ const HEIGHT = 800;
 const MARGIN = 10;
 const TICKS = 10;
 
+import setUpdatetimePicker from "./datetimePicker";
+
 class Locus {
     constructor() {
         this.svg = d3.select("svg#robotLocus")
@@ -57,14 +59,25 @@ class Locus {
     }
 }
 
-const locus = new Locus();
-let i = 0;
-function append() {
-    locus.dataset.push({x: Math.cos(i * Math.PI/16), y: Math.sin(i * Math.PI/16)});
-    locus.plot();
-    i++;
-    if (i <= 32) {
-        setTimeout(append, 100);
+const show = (locus) => {
+    const st = $("input#st_datetime_value").val();
+    const et = $("input#et_datetime_value").val();
+
+    let i = 0;
+    function append() {
+        locus.dataset.push({x: Math.cos(i * Math.PI/16), y: Math.sin(i * Math.PI/16)});
+        locus.plot();
+        i++;
+        if (i <= 32) {
+            setTimeout(append, 100);
+        }
     }
+    setTimeout(append, 100);
 }
-setTimeout(append, 100);
+
+$(() => {
+    setUpdatetimePicker();
+
+    const locus = new Locus();
+    $("button#show_button").on("click", (event) => { show(locus); });
+});
