@@ -1,0 +1,6 @@
+.python-version
+*.py[oc]
+.pytest_cache
+.node-version
+**/node_modules
+/app/static/js/*.js
