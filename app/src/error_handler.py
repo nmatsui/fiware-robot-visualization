@@ -12,4 +12,5 @@ blueprint = Blueprint('app', __name__)
 def error_handler(error):
     name = error.name if hasattr(error, 'name') else 'Internal Server Error'
     code = error.code if hasattr(error, 'code') else 500
-    return make_response(jsonify({'error': name}), code)
+    description = error.description if hasattr(error, 'description') else {}
+    return make_response(jsonify({'error': name, 'description': description}), code)

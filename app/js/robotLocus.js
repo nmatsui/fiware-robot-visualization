@@ -1,7 +1,10 @@
+'use strict';
+
 const WIDTH = 800;
 const HEIGHT = 800;
 const MARGIN = 10;
 const TICKS = 10;
+const DELTA = 100;
 
 import setUpdatetimePicker from "./datetimePicker";
 
@@ -41,6 +44,7 @@ class Locus {
     plot() {
         this.svg.append("path")
                 .datum(this.dataset)
+                .attr("data-type", "plotpath")
                 .attr("fill", "none")
                 .attr("stroke", "steelblue")
                 .attr("stroke-width", 2)
@@ -48,6 +52,7 @@ class Locus {
                                     .y(d => this.yScale(d.y)));
 
         this.svg.append("g")
+                .attr("data-type", "plotcircle")
                 .selectAll("circle")
                 .data(this.dataset)
                 .enter()
@@ -57,27 +62,78 @@ class Locus {
                 .attr("fill", "steelblue")
                 .attr("r", 1);
     }
-}
 
-const show = (locus) => {
-    const st = $("input#st_datetime_value").val();
-    const et = $("input#et_datetime_value").val();
-
-    let i = 0;
-    function append() {
-        locus.dataset.push({x: Math.cos(i * Math.PI/16), y: Math.sin(i * Math.PI/16)});
-        locus.plot();
-        i++;
-        if (i <= 32) {
-            setTimeout(append, 100);
-        }
+    clear() {
+        this.dataset = [];
+        this.svg.selectAll("path[data-type=plotpath]")
+                .data(this.dataset)
+                .exit()
+                .remove();
+        this.svg.selectAll("g[data-type=plotcircle]")
+                .data(this.dataset)
+                .exit()
+                .remove();
     }
-    setTimeout(append, 100);
+
+    show() {
+        toggleButtons(false);
+        this.clear();
+
+        const st = $("input#st_datetime_value").val();
+        const et = $("input#et_datetime_value").val();
+
+        $.ajax({
+            type: "GET",
+            url: "/positions/",
+            data: {
+                st: st,
+                et: et
+            },
+            dataType: 'json'
+        }).done((data) => {
+            let i = 0;
+            let append = () => {
+                this.dataset.push(data[i]);
+                this.plot();
+                i++;
+                if (i < data.length) {
+                    this.timer = setTimeout(append, DELTA);
+                } else {
+                    toggleButtons(true);
+                }
+            }
+            this.timer = setTimeout(append, DELTA);
+        }).fail(() => {
+            console.error("can't get the robot positions");
+            toggleButtons(true);
+        });
+    }
+
+    stop() {
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+        toggleButtons(true);
+    }
 }
+
+const toggleButtons = (can_render) => {
+    if (can_render) {
+        $("div#not_rendering").show();
+        $("div#rendering").hide();
+    } else {
+        $("div#not_rendering").hide();
+        $("div#rendering").show();
+    }
+};
 
 $(() => {
+    toggleButtons(true);
     setUpdatetimePicker();
 
     const locus = new Locus();
-    $("button#show_button").on("click", (event) => { show(locus); });
+    $("button#show_button").on("click", event => locus.show());
+    $("button#clear_button").on("click", event => locus.clear());
+    $("button#stop_button").on("click", event => locus.stop());
 });

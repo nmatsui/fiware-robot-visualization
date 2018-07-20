@@ -1,3 +1,5 @@
+'use strict';
+
 export default () => {
     const $st_datetime = $("#st_datetime");
     const $et_datetime = $("#et_datetime");
