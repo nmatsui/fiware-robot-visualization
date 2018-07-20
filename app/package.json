@@ -1,0 +1,17 @@
+{
+  "name": "fiware-robot-visualization",
+  "version": "0.2.0",
+  "description": "",
+  "scripts": {
+    "build": "webpack"
+  },
+  "author": "Nobuyuki Matsui",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-loader": "^7.1.5",
+    "babel-preset-env": "^1.7.0",
+    "webpack": "^4.16.1",
+    "webpack-cli": "^3.1.0"
+  }
+}

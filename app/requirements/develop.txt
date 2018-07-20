@@ -1,0 +1,3 @@
+flake8>=3.5
+pytest>=3.6
+pyquery>=1.4
