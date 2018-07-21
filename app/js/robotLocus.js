@@ -5,6 +5,7 @@ const HEIGHT = 700;
 const MARGIN = 10;
 const TICKS = 10;
 const DELTA = 100;
+const INIT_DOMAIN = 0.1
 
 import setUpdatetimePicker from "./datetimePicker";
 
@@ -19,26 +20,35 @@ class Locus {
 
     setAxes() {
         this.xScale = d3.scaleLinear()
-                        .domain([-1.5, 1.5])
+                        .domain([-1 * INIT_DOMAIN, INIT_DOMAIN])
                         .range([MARGIN, WIDTH - MARGIN]);
         this.yScale = d3.scaleLinear()
-                        .domain([-1.5, 1.5])
+                        .domain([-1 * INIT_DOMAIN, INIT_DOMAIN])
                         .range([HEIGHT - MARGIN, MARGIN]);
 
-        const axisx = d3.axisBottom(this.xScale)
+        this.xAxis = d3.axisBottom(this.xScale)
                         .ticks(TICKS)
                         .tickFormat(d => d != 0 ? String(d) : "");
-        const axisy = d3.axisLeft(this.yScale)
+        this.yAxis = d3.axisLeft(this.yScale)
                         .ticks(TICKS)
                         .tickFormat(d => d != 0 ? String(d) : "");
 
         this.svg.append("g")
+                .attr("data-type", "xAxis")
                 .attr("transform", "translate(" + 0 + "," + HEIGHT / 2 + ")")
-                .call(axisx);
+                .call(this.xAxis);
 
         this.svg.append("g")
+                .attr("data-type", "yAxis")
                 .attr("transform", "translate(" + WIDTH / 2 + "," + 0 + ")")
-                .call(axisy);
+                .call(this.yAxis);
+    }
+
+    updateAxes(d) {
+        this.xScale.domain([-1 * d, d]);
+        this.yScale.domain([-1 * d, d]);
+        this.svg.select("g[data-type=xAxis]").call(this.xAxis);
+        this.svg.select("g[data-type=yAxis]").call(this.yAxis);
     }
 
     plot() {
@@ -73,6 +83,7 @@ class Locus {
                 .data(this.dataset)
                 .exit()
                 .remove();
+        this.updateAxes(INIT_DOMAIN);
 
         $("div#point_num").text("");
         $("div#time").text("");
@@ -104,11 +115,19 @@ class Locus {
         }).done((data) => {
             $("p#point_num").text("0/" + String(data.length) + " points");
             if (data.length > 0) {
+                let maxX = Math.max(...data.map(d => d.x).map(x => x ? x : Number.MIN_VALUE))
+                let maxCeilX = Math.ceil(maxX * 10) / 10;
+
+                let maxY = Math.max(...data.map(d => d.y).map(y => y ? y : Number.MIN_VALUE))
+                let maxCeilY = Math.ceil(maxY * 10) / 10;
+
+                this.updateAxes(Math.max(maxCeilX, maxCeilY));
+
                 let i = 0;
-                let prev_x = 0.0;
-                let prev_y = 0.0;
+                let prev_x = Number.MIN_VALUE;
+                let prev_y = Number.MIN_VALUE;
                 let append = () => {
-                    if (data[i].x && data[i].y && (data[i].x != prev_x || data[i].y != prev_y)) {
+                    if (data[i].x != null && data[i].y != null && (data[i].x != prev_x || data[i].y != prev_y)) {
                         this.dataset.push({
                             x: data[i].x,
                             y: data[i].y
@@ -120,13 +139,13 @@ class Locus {
 
                     $("div#point_num").text("point : " + String(i + 1) + "/" + String(data.length));
                     $("div#time").text("time : " + String(data[i].time));
-                    if (data[i].x) {
+                    if (data[i].x != null) {
                         $("div#pos_x").text("x : " + String(data[i].x));
                     }
-                    if (data[i].y) {
+                    if (data[i].y != null) {
                         $("div#pos_y").text("y : " + String(data[i].y));
                     }
-                    if (data[i].theta) {
+                    if (data[i].theta != null) {
                         $("div#pos_theta").text("θ : " + String(data[i].theta));
                     }
 
