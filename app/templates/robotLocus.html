@@ -51,7 +51,18 @@
         </div>
 
         <div class="container">
-            <svg id="robotLocus" width="0" height="0"></svg>
+            <div class="row">
+                <div class="col-sm-8">
+                    <svg id="robotLocus" width="0" height="0"></svg>
+                </div>
+                <div class="col-sm-4">
+                    <div class="text-legt" id="point_num"></div>
+                    <div class="text-left" id="time"></div>
+                    <div class="text-left" id="pos_x"></div>
+                    <div class="text-left" id="pos_y"></div>
+                    <div class="text-left" id="pos_theta"></div>
+                </div>
+            </div>
         </div>
 
         <input type="hidden" id="bearer" value="{{ bearer }}"/>

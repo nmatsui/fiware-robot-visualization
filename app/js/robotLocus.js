@@ -1,7 +1,7 @@
 'use strict';
 
-const WIDTH = 800;
-const HEIGHT = 800;
+const WIDTH = 700;
+const HEIGHT = 700;
 const MARGIN = 10;
 const TICKS = 10;
 const DELTA = 100;
@@ -73,6 +73,12 @@ class Locus {
                 .data(this.dataset)
                 .exit()
                 .remove();
+
+        $("div#point_num").text("");
+        $("div#time").text("");
+        $("div#pos_x").text("");
+        $("div#pos_y").text("");
+        $("div#pos_theta").text("");
     }
 
     show() {
@@ -84,7 +90,6 @@ class Locus {
         const st = $("input#st_datetime_value").val();
         const et = $("input#et_datetime_value").val();
 
-
         $.ajax({
             type: "GET",
             url: path,
@@ -92,23 +97,50 @@ class Locus {
                 'Authorization': 'Bearer ' + bearer
             },
             data: {
-                st: st,
-                et: et
+                st: formatISO8601(new Date(st)),
+                et: formatISO8601(new Date(et))
             },
             dataType: 'json'
         }).done((data) => {
-            let i = 0;
-            let append = () => {
-                this.dataset.push(data[i]);
-                this.plot();
-                i++;
-                if (i < data.length) {
-                    this.timer = setTimeout(append, DELTA);
-                } else {
-                    toggleButtons(true);
+            $("p#point_num").text("0/" + String(data.length) + " points");
+            if (data.length > 0) {
+                let i = 0;
+                let prev_x = 0.0;
+                let prev_y = 0.0;
+                let append = () => {
+                    if (data[i].x && data[i].y && (data[i].x != prev_x || data[i].y != prev_y)) {
+                        this.dataset.push({
+                            x: data[i].x,
+                            y: data[i].y
+                        });
+                        this.plot();
+                        prev_x = data[i].x
+                        prev_y = data[i].y
+                    }
+
+                    $("div#point_num").text("point : " + String(i + 1) + "/" + String(data.length));
+                    $("div#time").text("time : " + String(data[i].time));
+                    if (data[i].x) {
+                        $("div#pos_x").text("x : " + String(data[i].x));
+                    }
+                    if (data[i].y) {
+                        $("div#pos_y").text("y : " + String(data[i].y));
+                    }
+                    if (data[i].theta) {
+                        $("div#pos_theta").text("θ : " + String(data[i].theta));
+                    }
+
+                    i++;
+                    if (i < data.length) {
+                        this.timer = setTimeout(append, DELTA);
+                    } else {
+                        toggleButtons(true);
+                    }
                 }
+                this.timer = setTimeout(append, DELTA);
+            } else {
+                toggleButtons(true);
             }
-            this.timer = setTimeout(append, DELTA);
         }).fail(() => {
             console.error("can't get the robot positions");
             toggleButtons(true);
@@ -132,6 +164,26 @@ const toggleButtons = (can_render) => {
         $("div#not_rendering").hide();
         $("div#rendering").show();
     }
+};
+
+const formatISO8601 = (date) => {
+    let o = date.getTimezoneOffset() / -60;
+    let offset = ((0 < o) ? '+' : '-') + ('00' + Math.abs(o)).substr(-2) + ':00';
+
+    return [
+        [
+            date.getFullYear(),
+            ('00' + (date.getMonth() + 1)).substr(-2),
+            ('00' + date.getDate()).substr(-2)
+        ].join('-'),
+        'T',
+        [
+            ('00' + date.getHours()).substr(-2),
+            ('00' + date.getMinutes()).substr(-2),
+            ('00' + date.getSeconds()).substr(-2)
+        ].join(':'),
+        offset
+    ].join('');
 };
 
 $(() => {

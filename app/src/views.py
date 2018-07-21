@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
-import math
+from collections import OrderedDict
 
 from logging import getLogger
+
+from dateutil import parser
+from pytz import timezone
+
+from pymongo import MongoClient, ASCENDING
 
 from flask import request, render_template, jsonify, current_app, url_for
 from flask.views import MethodView
@@ -37,21 +42,35 @@ class RobotLocusPage(MethodView):
 class RobotPositionsAPI(MethodView):
     NAME = 'robot_positions_api'
 
+    ENDPOINT = os.environ[const.MONGODB_ENDPOINT]
+    REPLICASET = os.environ[const.MONGODB_REPLICASET]
+    DB = os.environ[const.MONGODB_DATABASE]
+    COLLECTION = os.environ[const.MONGODB_COLLECTION]
+
     def get(self):
         st = request.args.get('st')
         et = request.args.get('et')
+
+        tz = current_app.config['TIMEZONE']
 
         logger.info(f'RobotPositionAPI, st={st} et={et}')
         if not st or not et:
             raise BadRequest({'message': 'empty query parameter "st" and/or "et"'})
 
-        dummy_data = []
-        for i in range(32 + 1):
-            dummy_data.append({
-                'x': math.cos(i * math.pi / 16.0),
-                'y': math.sin(i * math.pi / 16.0),
-                'z': 0.0,
-                'theta': 0.0,
-            })
+        start_dt = parser.parse(st).astimezone(timezone(tz))
+        end_dt = parser.parse(et).astimezone(timezone(tz))
 
-        return jsonify(dummy_data)
+        client = MongoClient(RobotPositionsAPI.ENDPOINT, replicaset=RobotPositionsAPI.REPLICASET)
+        collection = client[RobotPositionsAPI.DB][RobotPositionsAPI.COLLECTION]
+
+        points = OrderedDict()
+        for attr in collection.find({"recvTime": {"$gte": start_dt, "$lt": end_dt}}).sort([("recvTime", ASCENDING)]):
+            recv_time = attr['recvTime']
+            if recv_time not in points:
+                d = dict()
+                d['time'] = recv_time.astimezone(timezone(tz)).isoformat()
+                points[recv_time] = d
+            if attr['attrName'] in ['x', 'y', 'z', 'theta']:
+                points[recv_time][attr['attrName']] = float(attr['attrValue'])
+
+        return jsonify(list(points.values()))
