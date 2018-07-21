@@ -79,12 +79,18 @@ class Locus {
         toggleButtons(false);
         this.clear();
 
+        const bearer = $("input#bearer").val();
+        const path = $("input#path").val();
         const st = $("input#st_datetime_value").val();
         const et = $("input#et_datetime_value").val();
 
+
         $.ajax({
             type: "GET",
-            url: "/positions/",
+            url: path,
+            headers: {
+                'Authorization': 'Bearer ' + bearer
+            },
             data: {
                 st: st,
                 et: et

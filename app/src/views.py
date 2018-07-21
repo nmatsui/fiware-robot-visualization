@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
+import os
 import math
 
 from logging import getLogger
 
-from flask import request, render_template, jsonify
+from flask import request, render_template, jsonify, current_app, url_for
 from flask.views import MethodView
 from werkzeug.exceptions import BadRequest
+
+from src import const
 
 logger = getLogger(__name__)
 
@@ -14,7 +17,21 @@ class RobotLocusPage(MethodView):
     NAME = 'robot_locus_page'
 
     def get(self):
-        return render_template('robotLocus.html')
+        if const.BEARER_AUTH in os.environ:
+            bearer = os.environ[const.BEARER_AUTH]
+        else:
+            bearer = current_app.config[const.DEFAULT_BEARER_AUTH]
+
+        if const.PREFIX in os.environ:
+            positions_path = os.path.join('/',
+                                          os.environ.get(const.PREFIX, '').strip(),
+                                          *url_for(RobotPositionsAPI.NAME).split(os.sep)[1:])
+        else:
+            positions_path = url_for(RobotPositionsAPI.NAME)
+
+        prefix = os.environ[const.PREFIX] if const.PREFIX in os.environ else ''
+
+        return render_template('robotLocus.html', bearer=bearer, path=positions_path, prefix=prefix)
 
 
 class RobotPositionsAPI(MethodView):
