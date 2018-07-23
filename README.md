@@ -17,12 +17,12 @@ This application accepts the Environment Variables like below:
 |:--|:--|:--|
 |`LOG_LEVEL`|log level(DEBUG, INFO, WARNING, ERRRO, CRITICAL)|INFO|
 |`LISTEN_PORT`|listen port of this service|3000|
-|`PREFIX`|the prefix specified as the ambassador's annotation|''|
-|`BEARER_AUTH`|Bearer Auth token used by ajax request|''|
-|`MONGODB_ENDPOINT`|the endpoint of MongoDB which is used by FIWARE cygnus (like `mongodb:27017`)|''|
-|`MONGODB_REPLICASET`|the replicaset name of MongoDB which is used by FIWARE cygnus (like `rs0`)|''|
-|`MONGODB_DATABASE`|the database name of MongoDB which is used by FIWARE cygnus|''|
-|`MONGODB_COLLECTION`|the collection name of MongoDB which is used by FIWARE cygnus|''|
+|`PREFIX`|the prefix specified as the ambassador's annotation||
+|`BEARER_AUTH`|Bearer Auth token used by ajax request||
+|`MONGODB_ENDPOINT`|the endpoint of MongoDB which is used by FIWARE cygnus (like `mongodb:27017`)||
+|`MONGODB_REPLICASET`|the replicaset name of MongoDB which is used by FIWARE cygnus (like `rs0`)||
+|`MONGODB_DATABASE`|the database name of MongoDB which is used by FIWARE cygnus||
+|`MONGODB_COLLECTION`|the collection name of MongoDB which is used by FIWARE cygnus||
 
 ## License
 
