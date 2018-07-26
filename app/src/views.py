@@ -57,8 +57,11 @@ class RobotPositionsAPI(MethodView):
         if not st or not et:
             raise BadRequest({'message': 'empty query parameter "st" and/or "et"'})
 
-        start_dt = parser.parse(st).astimezone(timezone(tz))
-        end_dt = parser.parse(et).astimezone(timezone(tz))
+        try:
+            start_dt = parser.parse(st).astimezone(timezone(tz))
+            end_dt = parser.parse(et).astimezone(timezone(tz))
+        except (TypeError, ValueError):
+            raise BadRequest({'message': 'invalid query parameter "st" and/or "et"'})
 
         client = MongoClient(RobotPositionsAPI.ENDPOINT, replicaset=RobotPositionsAPI.REPLICASET)
         collection = client[RobotPositionsAPI.DB][RobotPositionsAPI.COLLECTION]
