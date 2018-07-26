@@ -1,3 +1,4 @@
 flake8>=3.5
 pytest>=3.6
 pyquery>=1.4
+pytest-mock>=1.10
