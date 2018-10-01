@@ -26,6 +26,7 @@ This application accepts the Environment Variables like below:
 |`MONGODB_REPLICASET`|the replicaset name of MongoDB which is used by FIWARE cygnus (like `rs0`)||
 |`MONGODB_DATABASE`|the database name of MongoDB which is used by FIWARE cygnus||
 |`MONGODB_COLLECTION`|the collection name of MongoDB which is used by FIWARE cygnus||
+|`CYGNUS_MONGO_ATTR_PERSISTENCE`|the data style of cygnus-mongo ('column' or 'row')|
 
 ## License
 
