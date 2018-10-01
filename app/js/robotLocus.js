@@ -115,10 +115,10 @@ class Locus {
         }).done((data) => {
             $("p#point_num").text("0/" + String(data.length) + " points");
             if (data.length > 0) {
-                let maxX = Math.max(...data.map(d => d.x).map(x => x ? x : Number.MIN_VALUE))
+                let maxX = Math.max(...data.map(d => d.x).map(x => x ? Math.abs(x) : Number.MIN_VALUE))
                 let maxCeilX = Math.ceil(maxX * 10) / 10;
 
-                let maxY = Math.max(...data.map(d => d.y).map(y => y ? y : Number.MIN_VALUE))
+                let maxY = Math.max(...data.map(d => d.y).map(y => y ? Math.abs(y) : Number.MIN_VALUE))
                 let maxCeilY = Math.ceil(maxY * 10) / 10;
 
                 this.updateAxes(Math.max(maxCeilX, maxCeilY));
