@@ -47,6 +47,13 @@ class RobotPositionsAPI(MethodView):
     DB = os.environ[const.MONGODB_DATABASE]
     COLLECTION = os.environ[const.MONGODB_COLLECTION]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if const.CYGNUS_MONGO_ATTR_PERSISTENCE in os.environ and os.environ[const.CYGNUS_MONGO_ATTR_PERSISTENCE] == 'row':
+            self.is_row = True
+        else:
+            self.is_row = False
+
     def get(self):
         st = request.args.get('st')
         et = request.args.get('et')
@@ -67,13 +74,20 @@ class RobotPositionsAPI(MethodView):
         collection = client[RobotPositionsAPI.DB][RobotPositionsAPI.COLLECTION]
 
         points = OrderedDict()
-        for attr in collection.find({"recvTime": {"$gte": start_dt, "$lt": end_dt}}).sort([("recvTime", ASCENDING)]):
-            recv_time = attr['recvTime']
-            if recv_time not in points:
-                d = dict()
+        if self.is_row:
+            for attr in collection.find({"recvTime": {"$gte": start_dt, "$lt": end_dt}}).sort([("recvTime", ASCENDING)]):
+                recv_time = attr['recvTime']
+                if recv_time not in points:
+                    d = dict()
+                    d['time'] = recv_time.astimezone(timezone(tz)).isoformat()
+                    points[recv_time] = d
+                if attr['attrName'] in ['x', 'y', 'z', 'theta']:
+                    points[recv_time][attr['attrName']] = float(attr['attrValue'])
+        else:
+            for attr in collection.find({"recvTime": {"$gte": start_dt, "$lt": end_dt}}).sort([("recvTime", ASCENDING)]):
+                recv_time = attr['recvTime']
+                d = {k: attr[k] for k in ('x', 'y', 'z', 'theta') if k in attr}
                 d['time'] = recv_time.astimezone(timezone(tz)).isoformat()
                 points[recv_time] = d
-            if attr['attrName'] in ['x', 'y', 'z', 'theta']:
-                points[recv_time][attr['attrName']] = float(attr['attrValue'])
 
         return jsonify(list(points.values()))
