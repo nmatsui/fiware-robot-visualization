@@ -103,7 +103,9 @@ class TestRobotPositionsAPI:
         assert response.status_code == 400
         assert not hasattr(response, 'body')
 
-    def test_get_success(self, mocker, client, app_config):
+    def test_get_success_row(self, mocker, client, app_config):
+        os.environ[const.CYGNUS_MONGO_ATTR_PERSISTENCE] = "row"
+
         response = client.get('/positions')
         assert response.status_code == 301
         assert not hasattr(response, 'body')
@@ -197,6 +199,92 @@ class TestRobotPositionsAPI:
             }
         ]
         assert response.json == expected
+
+        if const.CYGNUS_MONGO_ATTR_PERSISTENCE in os.environ:
+            del os.environ[const.CYGNUS_MONGO_ATTR_PERSISTENCE]
+
+    @pytest.mark.parametrize('env', ['None', '', 'column', 'dummy'])
+    def test_get_success_column(self, mocker, client, app_config, env):
+        if env != 'None':
+            os.environ[const.CYGNUS_MONGO_ATTR_PERSISTENCE] = env
+
+        response = client.get('/positions')
+        assert response.status_code == 301
+        assert not hasattr(response, 'body')
+        assert response.headers['Location'].endswith('/positions/')
+
+        st = '2018-01-02T03:04:05+09:00'
+        et = '2018-01-06T03:04:05+09:00'
+        recv_time_0 = '2018-01-03T03:04:05+09:00'
+        recv_time_1 = '2018-01-04T03:04:05+09:00'
+        recv_time_2 = '2018-01-05T03:04:05+09:00'
+
+        params = {
+            'st': st,
+            'et': et,
+        }
+        tz = app_config['TIMEZONE']
+
+        mocked_MongoClient = mocker.patch('src.views.MongoClient')
+        mocked_client = mocked_MongoClient.return_value
+        mocked_collection = mocked_client.__getitem__.return_value.__getitem__.return_value
+
+        recvTime0 = parser.parse(recv_time_0)
+        recvTime1 = parser.parse(recv_time_1)
+        recvTime2 = parser.parse(recv_time_2)
+        mocked_collection.find.return_value.sort.return_value = [
+            {
+                'recvTime': recvTime0,
+                'x': 0.0,
+                'y': 0.1,
+                'z': 0.2,
+                'theta': 0.3,
+            }, {
+                'recvTime': recvTime1,
+                'dummy': 'dummy',
+            }, {
+                'recvTime': recvTime2,
+                'x': 2.0,
+                'y': 2.1,
+            },
+        ]
+
+        response = client.get('/positions/', query_string=params)
+
+        mocked_MongoClient.assert_called_once_with('mongo', replicaset='rs')
+        mocked_client.return_value.assert_not_called
+        mocked_client.__getitem__.assert_called_once_with('db')
+        mocked_client.__getitem__.return_value.__getitem__.assert_called_once_with('collection')
+        mocked_collection.find.assert_called_once_with({
+            "recvTime": {
+                "$gte": parser.parse(st).astimezone(timezone(tz)),
+                "$lt": parser.parse(et).astimezone(timezone(tz)),
+            }
+        })
+        mocked_collection.find.return_value.sort.assert_called_once_with([("recvTime", ASCENDING)])
+
+        assert response.status_code == 200
+        assert response.content_type == 'application/json'
+
+        expected = [
+            {
+                'time': recv_time_0,
+                'x': 0.0,
+                'y': 0.1,
+                'z': 0.2,
+                'theta': 0.3,
+            }, {
+                'time': recv_time_1,
+            }, {
+                'time': recv_time_2,
+                'x': 2.0,
+                'y': 2.1,
+            }
+        ]
+        assert response.json == expected
+
+        if const.CYGNUS_MONGO_ATTR_PERSISTENCE in os.environ:
+            del os.environ[const.CYGNUS_MONGO_ATTR_PERSISTENCE]
 
     def test_get_no_param(self, mocker, client):
         mocked_MongoClient = mocker.patch('src.views.MongoClient')
