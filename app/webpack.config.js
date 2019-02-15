@@ -2,7 +2,8 @@ const path = require('path')
 
 module.exports = {
     mode: 'production',
-    entry: path.resolve(__dirname, 'js/robotLocus.js'),
+    target: 'web',
+    entry: ['@babel/polyfill', path.resolve(__dirname, 'js/robotLocus.js')],
     output: {
         path: path.resolve(__dirname, 'static/js'),
         filename: 'robotLocus.js'
@@ -11,16 +12,13 @@ module.exports = {
         rules: [
             {
                 test: /\.js$/,
-                use: [
-                    {
-                        loader: 'babel-loader',
-                        options: {
-                            presets: [
-                                ['env', {'modules': false}]
-                            ]
-                        }
+                exclude: /node_modules/,
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        presets: ['@babel/preset-env']
                     }
-                ]
+                }
             }
         ]
     }
