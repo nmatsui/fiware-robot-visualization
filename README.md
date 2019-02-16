@@ -1,8 +1,8 @@
 # fiware-robot-visualization
 This [flask](http://flask.pocoo.org/) application visualizes the locus of [ROS](http://flask.pocoo.org/) robot.
 
-[![TravisCI Status](https://travis-ci.org/tech-sketch/fiware-robot-visualization.svg?branch=master)](https://travis-ci.org/tech-sketch/fiware-robot-visualization)
-[![DockerHub Status](https://dockerbuildbadges.quelltext.eu/status.svg?organization=techsketch&repository=fiware-robot-visualization)](https://hub.docker.com/r/techsketch/fiware-robot-visualization/builds/)
+[![TravisCI Status](https://travis-ci.org/RoboticBase/fiware-robot-visualization.svg?branch=master)](https://travis-ci.org/RoboticBase/fiware-robot-visualization)
+[![Docker image size](https://img.shields.io/microbadger/image-size/roboticbase/fiware-robot-visualization.svg)](https://hub.docker.com/r/roboticbase/fiware-robot-visualization/)
 
 ## Description
 This application works as a component of [FIWARE](https://www.fiware.org/).
