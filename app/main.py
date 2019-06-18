@@ -7,7 +7,7 @@ from logging import getLogger
 
 from flask import Flask
 
-from src.views import RobotLocusPage, RobotPositionsAPI
+from src.views import RobotLocusPage, RobotPositionsAPI, RobotPositionsAPIv2
 from src import error_handler
 from src import const
 
@@ -26,7 +26,11 @@ except FileNotFoundError:
 app = Flask(__name__)
 app.config.from_pyfile(const.CONFIG_CFG)
 app.add_url_rule('/locus/', view_func=RobotLocusPage.as_view(RobotLocusPage.NAME))
-app.add_url_rule('/positions/', view_func=RobotPositionsAPI.as_view(RobotPositionsAPI.NAME))
+
+if os.environ.get(const.API_VERSION, '') == 'v2':
+    app.add_url_rule('/positions/', view_func=RobotPositionsAPIv2.as_view(RobotPositionsAPI.NAME))
+else:
+    app.add_url_rule('/positions/', view_func=RobotPositionsAPI.as_view(RobotPositionsAPI.NAME))
 app.register_blueprint(error_handler.blueprint)
 
 
