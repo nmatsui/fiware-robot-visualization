@@ -102,6 +102,7 @@ class RobotPositionsAPIv2(MethodView):
     FIWARE_SERVICEPATH = os.environ.get(const.FIWARE_SERVICEPATH)
     ENTITY_TYPE = os.environ.get(const.ENTITY_TYPE)
     ENTITY_ID = os.environ.get(const.ENTITY_ID)
+    FETCH_LIMIT = int(os.environ.get(const.FETCH_LIMIT, const.DEFAULT_FETCH_LIMIT))
 
     def get(self):
         st = request.args.get('st')
@@ -153,7 +154,7 @@ class RobotPositionsAPIv2(MethodView):
 
         while True:
             params = {
-                'hLimit': const.LIMIT,
+                'hLimit': RobotPositionsAPIv2.FETCH_LIMIT,
                 'hOffset': current_page,
                 'dateFrom': start_dt,
                 'dateTo': end_dt,
@@ -163,15 +164,19 @@ class RobotPositionsAPIv2(MethodView):
             response = requests.get(endpoint, headers=headers, params=params)
 
             if response.status_code != 200:
+                logger.error(f'can not retrieve data from sth-coment, status_code={response.status_code}, '
+                             f'data={response.text}')
                 return []
             try:
-                count = int(response.headers.get("fiware-total-count", "0"))
+                count = int(response.headers.get('fiware-total-count', '0'))
             except (ValueError, TypeError) as e:
+                logger.error(f'invalid fiware-total-count, fiware-total-count={response.get("fiware-total-count")}'
+                             f'error={str(e)}')
                 return []
 
             result.extend(response.json()["contextResponses"][0]["contextElement"]["attributes"][0]["values"])
 
-            current_page += const.LIMIT
+            current_page += RobotPositionsAPIv2.FETCH_LIMIT
             if current_page >= count:
                 break
 
