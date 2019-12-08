@@ -25,21 +25,8 @@ class RobotLocusPage(MethodView):
     NAME = 'robot_locus_page'
 
     def get(self):
-        if const.BEARER_AUTH in os.environ:
-            bearer = os.environ[const.BEARER_AUTH]
-        else:
-            bearer = current_app.config[const.DEFAULT_BEARER_AUTH]
-
-        if const.PREFIX in os.environ:
-            positions_path = os.path.join('/',
-                                          os.environ.get(const.PREFIX, '').strip(),
-                                          *url_for(RobotPositionsAPIBase.NAME).split(os.sep)[1:])
-        else:
-            positions_path = url_for(RobotPositionsAPIBase.NAME)
-
-        prefix = os.environ[const.PREFIX] if const.PREFIX in os.environ else ''
-
-        return render_template('robotLocus.html', bearer=bearer, path=positions_path, prefix=prefix)
+        positions_path = url_for(RobotPositionsAPIBase.NAME)
+        return render_template('robotLocus.html', path=positions_path)
 
 
 class RobotPositionsAPIBase(MethodView):
@@ -66,44 +53,6 @@ class RobotPositionsAPIBase(MethodView):
         return start_dt, end_dt
 
 
-class RobotPositionsAPI(RobotPositionsAPIBase):
-    ENDPOINT = os.environ.get(const.MONGODB_ENDPOINT)
-    REPLICASET = os.environ.get(const.MONGODB_REPLICASET)
-    DB = os.environ.get(const.MONGODB_DATABASE)
-    COLLECTION = os.environ.get(const.MONGODB_COLLECTION)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if const.CYGNUS_MONGO_ATTR_PERSISTENCE in os.environ and os.environ[const.CYGNUS_MONGO_ATTR_PERSISTENCE] == 'row':
-            self.is_row = True
-        else:
-            self.is_row = False
-
-    def get(self):
-        start_dt, end_dt = super()._parse_params()
-        client = MongoClient(RobotPositionsAPI.ENDPOINT, replicaset=RobotPositionsAPI.REPLICASET)
-        collection = client[RobotPositionsAPI.DB][RobotPositionsAPI.COLLECTION]
-
-        points = OrderedDict()
-        if self.is_row:
-            for attr in collection.find({"recvTime": {"$gte": start_dt, "$lt": end_dt}}).sort([("recvTime", ASCENDING)]):
-                recv_time = attr['recvTime']
-                if recv_time not in points:
-                    d = dict()
-                    d['time'] = recv_time.astimezone(self.tz).isoformat()
-                    points[recv_time] = d
-                if attr['attrName'] in ['x', 'y', 'z', 'theta']:
-                    points[recv_time][attr['attrName']] = float(attr['attrValue'])
-        else:
-            for attr in collection.find({"recvTime": {"$gte": start_dt, "$lt": end_dt}}).sort([("recvTime", ASCENDING)]):
-                recv_time = attr['recvTime']
-                d = {k: attr[k] for k in ('x', 'y', 'z', 'theta') if k in attr}
-                d['time'] = recv_time.astimezone(self.tz).isoformat()
-                points[recv_time] = d
-
-        return jsonify(list(points.values()))
-
-
 class RobotPositionsAPIv2(RobotPositionsAPIBase):
     ENDPOINT = os.environ.get(const.COMET_ENDPOINT)
     FIWARE_SERVICE = os.environ.get(const.FIWARE_SERVICE)
@@ -122,7 +71,7 @@ class RobotPositionsAPIv2(RobotPositionsAPIBase):
                 points[recv_time] = {'time': parser.parse(recv_time).astimezone(self.tz).isoformat()}
             points[recv_time]['x'] = float(attr['attrValue'])
 
-        for attrName in ('y', 'z', 'theta'):
+        for attrName in ('y'):
             for attr in self.__send_request_to_comet(attrName, start_dt, end_dt):
                 recv_time = attr['recvTime']
                 if recv_time in points:
@@ -131,6 +80,7 @@ class RobotPositionsAPIv2(RobotPositionsAPIBase):
         return jsonify(list(points.values()))
 
     def __send_request_to_comet(self, attr, start_dt, end_dt):
+        logger.debug(f'get "{attr}" from {start_dt} to {end_dt}')
         headers = dict()
         headers['Fiware-Service'] = RobotPositionsAPIv2.FIWARE_SERVICE
         headers['Fiware-Servicepath'] = RobotPositionsAPIv2.FIWARE_SERVICEPATH
@@ -144,13 +94,13 @@ class RobotPositionsAPIv2(RobotPositionsAPIBase):
                             attr)
         endpoint = urljoin(RobotPositionsAPIv2.ENDPOINT, path)
 
-        current_page = 0
+        current_num = 0
         result = list()
 
         while True:
             params = {
                 'hLimit': RobotPositionsAPIv2.FETCH_LIMIT,
-                'hOffset': current_page,
+                'hOffset': current_num,
                 'dateFrom': start_dt,
                 'dateTo': end_dt,
                 'count': 'true',
@@ -164,17 +114,22 @@ class RobotPositionsAPIv2(RobotPositionsAPIBase):
                 return []
             try:
                 count = int(response.headers.get('fiware-total-count', '0'))
+                logger.debug(f'total-count of {attr} = {count}')
+                if count == 0:
+                    continue
             except (ValueError, TypeError) as e:
                 logger.error(f'invalid fiware-total-count, fiware-total-count={response.get("fiware-total-count")}'
                              f'error={str(e)}')
                 return []
 
             result.extend(response.json()["contextResponses"][0]["contextElement"]["attributes"][0]["values"])
+            logger.debug(f'result length of {attr} = {len(result)}')
 
-            current_page += RobotPositionsAPIv2.FETCH_LIMIT
-            if current_page >= count:
+            current_num += RobotPositionsAPIv2.FETCH_LIMIT
+            logger.debug(f'next fetch count of {attr} = {current_num}')
+            if current_num >= count:
                 break
 
-        logger.debug(f'retrieve {len(result)} data, entity_type={RobotPositionsAPIv2.ENTITY_TYPE}, '
+        logger.info(f'retrieve {len(result)} data, entity_type={RobotPositionsAPIv2.ENTITY_TYPE}, '
                      f'entity_id={RobotPositionsAPIv2.ENTITY_ID}, attr={attr}, start_dt={start_dt}, end_dt={end_dt}')
         return result
