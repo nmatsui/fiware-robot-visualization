@@ -4,7 +4,7 @@ const WIDTH = 700;
 const HEIGHT = 700;
 const MARGIN = 10;
 const TICKS = 10;
-const DELTA = 100;
+const DELTA = 50;
 const INIT_DOMAIN = 0.1
 
 import setUpdatetimePicker from "./datetimePicker";
@@ -89,14 +89,12 @@ class Locus {
         $("div#time").text("");
         $("div#pos_x").text("");
         $("div#pos_y").text("");
-        $("div#pos_theta").text("");
     }
 
     show() {
         toggleButtons(false);
         this.clear();
 
-        const bearer = $("input#bearer").val();
         const path = $("input#path").val();
         const st = $("input#st_datetime_value").val();
         const et = $("input#et_datetime_value").val();
@@ -104,9 +102,6 @@ class Locus {
         $.ajax({
             type: "GET",
             url: path,
-            headers: {
-                'Authorization': 'Bearer ' + bearer
-            },
             data: {
                 st: formatISO8601(new Date(st)),
                 et: formatISO8601(new Date(et))
@@ -123,20 +118,18 @@ class Locus {
 
                 this.updateAxes(Math.max(maxCeilX, maxCeilY));
 
-                let i = 0;
                 let prev_x = Number.MIN_VALUE;
                 let prev_y = Number.MIN_VALUE;
-                let append = () => {
+
+                for (let i = 0; i < data.length; ++i) {
                     if (data[i].x != null && data[i].y != null && (data[i].x != prev_x || data[i].y != prev_y)) {
                         this.dataset.push({
                             x: data[i].x,
                             y: data[i].y
                         });
-                        this.plot();
                         prev_x = data[i].x
                         prev_y = data[i].y
                     }
-
                     $("div#point_num").text("point : " + String(i + 1) + "/" + String(data.length));
                     $("div#time").text("time : " + String(data[i].time));
                     if (data[i].x != null) {
@@ -148,18 +141,10 @@ class Locus {
                     if (data[i].theta != null) {
                         $("div#pos_theta").text("θ : " + String(data[i].theta));
                     }
-
-                    i++;
-                    if (i < data.length) {
-                        this.timer = setTimeout(append, DELTA);
-                    } else {
-                        toggleButtons(true);
-                    }
                 }
-                this.timer = setTimeout(append, DELTA);
-            } else {
-                toggleButtons(true);
+                this.plot();
             }
+            toggleButtons(true);
         }).fail(() => {
             console.error("can't get the robot positions");
             toggleButtons(true);
