@@ -8,8 +8,6 @@ from logging import getLogger
 from dateutil import parser
 from pytz import timezone
 
-from pymongo import MongoClient, ASCENDING
-
 import requests
 
 from flask import request, render_template, jsonify, current_app, url_for
@@ -116,6 +114,7 @@ class RobotPositionsAPIv2(RobotPositionsAPIBase):
                 count = int(response.headers.get('fiware-total-count', '0'))
                 logger.debug(f'total-count of {attr} = {count}')
                 if count == 0:
+                    logger.warning(f'total-count is 0, continue')
                     continue
             except (ValueError, TypeError) as e:
                 logger.error(f'invalid fiware-total-count, fiware-total-count={response.get("fiware-total-count")}'
@@ -131,5 +130,5 @@ class RobotPositionsAPIv2(RobotPositionsAPIBase):
                 break
 
         logger.info(f'retrieve {len(result)} data, entity_type={RobotPositionsAPIv2.ENTITY_TYPE}, '
-                     f'entity_id={RobotPositionsAPIv2.ENTITY_ID}, attr={attr}, start_dt={start_dt}, end_dt={end_dt}')
+                    f'entity_id={RobotPositionsAPIv2.ENTITY_ID}, attr={attr}, start_dt={start_dt}, end_dt={end_dt}')
         return result
